@@ -21,20 +21,3 @@ This version allows you to quickly start the game and manage updates.
 ## 🛠 Tech Stack
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-
-------------------------------------------------------------------------
-
-## 📦 Requirements
-
-- Python 3.8 or higher  
-- Required dependencies (see `requirements.txt`)
-
-------------------------------------------------------------------------
-
-## 🔧 Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/folia-launcher.git
-cd folia-launcher
