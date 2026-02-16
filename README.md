@@ -1,5 +1,7 @@
 # 🚀 Folia Launcher Beta-1
 
+![Banner](assets/banner.gif)
+
 Folia Launcher Beta-1 is an early version of a lightweight Minecraft launcher written in Python.
 
 This version allows you to quickly start the game and manage updates.  
