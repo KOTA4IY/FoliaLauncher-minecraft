@@ -1,23 +1,62 @@
-# 🚀 Folia Launcher Beta-1
+# Folia Launcher (Beta 2)
 
-![Banner](assets/banner.gif)
+**Folia Launcher (Beta 2)** is a modern and lightweight launcher for :contentReference[oaicite:0]{index=0}, inspired by the functionality of :contentReference[oaicite:1]{index=1}.  
+It provides a clean and powerful way to manage instances, mods, and game versions — without requiring a Microsoft account.
 
-Folia Launcher Beta-1 is an early version of a lightweight Minecraft launcher written in Python.
+> ⚠️ This is **Beta 2**. Some features are still in development and minor issues may occur.
 
-This version allows you to quickly start the game and manage updates.  
-⚠️ Please note: this is a beta release and may be unstable.
+## 🚀 Features
 
-------------------------------------------------------------------------
+- Full mod and modpack management  
+- Clean, fast, and modern interface  
+- Easy instance creation and customization  
+- Support for multiple game versions  
+- Optimized performance and lightweight design  
 
-## ✨ Features
+## 🔐 Account System
 
-- Fast Minecraft launch  
-- Simple and lightweight interface  
-- Easy update management  
-- Early beta testing version  
+Folia Launcher does **not** require a Microsoft account.
 
-------------------------------------------------------------------------
+Available login methods:
 
-## 🛠 Tech Stack
+- Local account (offline mode)  
+- Ely.by account authentication  
 
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+This makes the launcher flexible and accessible for players who prefer alternative authentication options.
+
+## 🌍 Built-in Languages
+
+Folia Launcher includes a wide range of built-in interface languages:
+
+### MOST USED
+English, Русский, Français, Deutsch  
+
+### SLAVIC
+Українська, Беларуская, Polski, Čeština, Slovenčina, Slovenščina, Hrvatski, Српски, Bosanski, Български  
+
+### ROMANCE
+Español, Português, Italiano, Română  
+
+### GERMANIC
+Nederlands, Dansk, Svenska, Norsk, Íslenska, Lëtzebuergesch  
+
+### URALIC
+Suomi, Magyar, Eesti  
+
+### BALTIC
+Latviešu, Lietuvių  
+
+### OTHER
+Ελληνικά, Shqip, Gaeilge  
+
+## 🎮 Who Is It For?
+
+- Players who don’t want to use Microsoft authentication  
+- Modded Minecraft fans  
+- Communities using Ely.by  
+- Users looking for a clean and modern alternative launcher  
+
+## 📌 Status
+
+Current version: **Beta 2**  
+The project is under active development.
