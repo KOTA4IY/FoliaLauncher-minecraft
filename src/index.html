@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoliaLauncher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        zinc: { 850: '#1f1f22', 950: '#0c0c0e' } // Custom deep dark colors
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        
+        /* Animations */
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .modal-enter { animation: modalEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes modalEnter { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200 font-sans h-screen flex overflow-hidden selection:bg-emerald-500/30 select-none">
+
+    <!-- Sidebar -->
+    <aside class="w-72 bg-[#121214] border-r border-zinc-800/50 flex flex-col shrink-0 z-20">
+        <!-- Header / Drag Region -->
+        <div class="h-16 flex items-center px-5 border-b border-zinc-800/50 pywebview-drag-region">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-900/20">
+                    <i class="fa-solid fa-leaf text-white text-sm"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg tracking-tight text-white leading-none">Folia<span class="text-emerald-500">Launcher</span></span>
+                    <span class="text-[10px] text-zinc-500 font-medium tracking-wider">beta 2</span>
+                    <span class="text-[10px] text-zinc-500 font-medium tracking-wider">By KOTA4IY</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation / Instance List -->
+        <div class="flex-1 overflow-y-auto p-3 space-y-1" id="instanceList">
+            <!-- Instances will be injected here -->
+        </div>
+
+        <!-- Bottom Actions -->
+        <div class="p-4 border-t border-zinc-800/50 bg-zinc-900/30">
+            <button onclick="openModal('createModal')" class="w-full py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm border border-zinc-700/50 group">
+                <i class="fa-solid fa-plus text-emerald-500 group-hover:text-emerald-400 transition-colors"></i>
+                <span data-i18n="add_instance">Add Instance</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col relative bg-zinc-950">
+        <!-- Top Bar -->
+        <header class="h-16 flex items-center justify-between px-8 border-b border-zinc-800/50 shrink-0 relative z-30">
+            <!-- Drag Region (Left side only) -->
+            <div class="flex-1 h-full flex items-center pywebview-drag-region cursor-default">
+                <div class="text-sm text-zinc-500 font-medium flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span id="statusText" data-i18n="ready">Ready</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 pl-4">
+                <!-- Account Selector -->
+                <div class="relative dropdown-container" id="accountDropdownContainer">
+                    <button onclick="toggleDropdown('accountDropdownMenu')" class="flex items-center gap-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 text-zinc-300 pl-2 pr-3 py-1.5 rounded-lg transition-all min-w-[180px] group">
+                        <div class="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-[10px] text-white font-bold shadow-inner" id="currentAccountIcon">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div class="flex flex-col items-start flex-1 overflow-hidden">
+                            <span class="text-xs font-bold text-white truncate w-full text-left" id="currentAccountName" data-i18n="no_accounts">No accounts</span>
+                            <span class="text-[10px] text-zinc-500 truncate w-full text-left" id="currentAccountType">Select account</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-xs text-zinc-500 group-hover:text-zinc-300 transition-colors"></i>
+                    </button>
+
+                    <div id="accountDropdownMenu" class="absolute right-0 top-full mt-2 w-64 bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden hidden z-50 ring-1 ring-white/5">
+                        <div class="p-2 space-y-1 max-h-60 overflow-y-auto" id="accountList">
+                            <!-- Items injected via JS -->
+                        </div>
+                        <div class="p-2 border-t border-zinc-800/50 bg-zinc-900/50 flex gap-2">
+                            <button onclick="openModal('accountModal'); toggleDropdown('accountDropdownMenu')" class="flex-1 flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+                                <i class="fa-solid fa-plus"></i> <span data-i18n="add">Add</span>
+                            </button>
+                            <button onclick="pywebview.api.delete_current_account().then(() => window.location.reload())" class="flex-1 flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors">
+                                <i class="fa-solid fa-trash"></i> <span>Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="window.location.reload()" class="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Reload Page">
+                    <i class="fa-solid fa-rotate-right text-xs"></i>
+                </button>
+
+                <button onclick="openModal('settingsModal')" class="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors" title="Settings">
+                    <i class="fa-solid fa-gear text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-hidden relative">
+            
+            <!-- Home Screen (Empty State) -->
+            <div id="homeScreen" class="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 fade-in">
+                <div class="w-24 h-24 bg-zinc-900 rounded-full flex items-center justify-center mb-6 border border-zinc-800 shadow-inner">
+                    <i class="fa-solid fa-cube text-4xl opacity-30"></i>
+                </div>
+                <h2 class="text-xl font-medium text-zinc-400" data-i18n="select_instance">No instance selected</h2>
+                <p class="text-sm mt-2 text-zinc-600" data-i18n="library">Select an instance from the library to start playing.</p>
+            </div>
+
+            <!-- Instance Screen -->
+            <div id="instanceScreen" class="absolute inset-0 flex flex-col hidden">
+                <!-- Hero / Header -->
+                <div class="px-10 py-10 pb-0">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h1 id="instName" class="text-4xl font-bold text-white tracking-tight mb-3">Instance Name</h1>
+                            <div class="flex items-center gap-3 text-sm">
+                                <span class="px-2.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono" id="instVersion">1.20.1</span>
+                                <span class="px-2.5 py-0.5 rounded bg-emerald-950/50 border border-emerald-900/50 text-emerald-500 font-medium" id="instLoader">Fabric</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="pywebview.api.open_instance_folder()" class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg text-sm font-medium transition-colors border border-zinc-800">
+                                <i class="fa-regular fa-folder-open mr-2"></i> <span data-i18n="find">Folder</span>
+                            </button>
+                            <button onclick="deleteInstance()" class="px-4 py-2 bg-red-950/20 hover:bg-red-950/40 text-red-500/80 hover:text-red-400 border border-red-900/20 rounded-lg text-sm font-medium transition-colors">
+                                <i class="fa-regular fa-trash-can mr-2"></i> <span data-i18n="delete_title">Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Area -->
+                <div class="px-10 py-8 flex items-center gap-6">
+                    <button id="playBtn" onclick="launchGame()" class="group relative px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 overflow-hidden">
+                        <span class="relative z-10 flex items-center gap-2">
+                            <i class="fa-solid fa-play text-sm"></i> <span data-i18n="play">PLAY</span>
+                        </span>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
+                    </button>
+                    
+                    <!-- Progress Bar -->
+                    <div id="progressContainer" class="flex-1 max-w-md hidden">
+                        <div class="flex justify-between text-xs text-zinc-500 mb-2 font-medium">
+                            <span>Launching...</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full bg-emerald-500 transition-all duration-300 ease-out w-0 shadow-[0_0_10px_rgba(16,185,129,0.4)]"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="px-10 mt-4">
+                    <div class="border-b border-zinc-800/50">
+                        <nav class="-mb-px flex gap-6" aria-label="Tabs">
+                            <button onclick="switchInstanceTab('consoleTab', this, 'console')" class="instance-tab-btn border-emerald-500 text-emerald-500 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm" data-i18n="game_output">
+                                Game Output
+                            </button>
+                            <button onclick="switchInstanceTab('modsTab', this, 'mod')" class="instance-tab-btn border-transparent text-zinc-500 hover:text-zinc-300 hover:border-zinc-400 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm" data-i18n="mods">
+                                Mods
+                            </button>
+                            <button onclick="switchInstanceTab('resourcePacksTab', this, 'resourcepack')" class="instance-tab-btn border-transparent text-zinc-500 hover:text-zinc-300 hover:border-zinc-400 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm" data-i18n="resource_packs">
+                                Resource Packs
+                            </button>
+                            <button onclick="switchInstanceTab('shaderPacksTab', this, 'shaderpack')" class="instance-tab-btn border-transparent text-zinc-500 hover:text-zinc-300 hover:border-zinc-400 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm" data-i18n="shaders">
+                                Shaders
+                            </button>
+                            <button onclick="switchInstanceTab('datapacksTab', this, 'datapack')" class="instance-tab-btn border-transparent text-zinc-500 hover:text-zinc-300 hover:border-zinc-400 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm" data-i18n="datapacks">
+                                Datapacks
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="flex-1 px-10 py-6 min-h-0 flex flex-col">
+                    <!-- Console Tab -->
+                    <div id="consoleTab" class="instance-tab-content flex-1 min-h-0 flex flex-col">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-[10px] font-bold text-zinc-600 uppercase tracking-wider" data-i18n="game_output">Game Output</h3>
+                            <button onclick="document.getElementById('console').innerHTML = ''" class="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors uppercase font-bold tracking-wider" data-i18n="clear">Clear</button>
+                        </div>
+                        <div id="console" class="flex-1 bg-[#0c0c0e] border border-zinc-800/50 rounded-lg p-4 font-mono text-xs text-zinc-400 overflow-y-auto select-text whitespace-pre-wrap scroll-smooth shadow-inner">
+                            <div class="text-zinc-700 italic" data-i18n="waiting_for_logs">Waiting for logs...</div>
+                        </div>
+                    </div>
+
+                    <!-- Mods Tab -->
+                    <div id="modsTab" class="instance-tab-content flex-1 min-h-0 flex flex-col hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white" data-i18n="installed_mods">Installed Mods</h3>
+                            <button onclick="openItemBrowser('mod')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-plus text-xs"></i> <span data-i18n="add_mods">Add Mods</span>
+                            </button>
+                        </div>
+                        <div id="installedModsList" class="flex-1 bg-[#0c0c0e] border border-zinc-800/50 rounded-lg p-2 font-sans text-sm text-zinc-400 overflow-y-auto shadow-inner space-y-2">
+                            <div class="text-zinc-600 italic p-4 text-center" data-i18n="no_mods_installed">No mods installed. Click 'Add Mods' to get started.</div>
+                            <!-- Mod items will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Resource Packs Tab -->
+                    <div id="resourcePacksTab" class="instance-tab-content flex-1 min-h-0 flex flex-col hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white" data-i18n="installed_resource_packs">Installed Resource Packs</h3>
+                            <button onclick="openItemBrowser('resourcepack')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-plus text-xs"></i> <span data-i18n="add_resource_packs">Add Resource Packs</span>
+                            </button>
+                        </div>
+                        <div id="installedResourcePacksList" class="flex-1 bg-[#0c0c0e] border border-zinc-800/50 rounded-lg p-2 font-sans text-sm text-zinc-400 overflow-y-auto shadow-inner space-y-2"></div>
+                    </div>
+
+                    <!-- Shader Packs Tab -->
+                    <div id="shaderPacksTab" class="instance-tab-content flex-1 min-h-0 flex flex-col hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white" data-i18n="installed_shaders">Installed Shaders</h3>
+                            <button onclick="openItemBrowser('shaderpack')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-plus text-xs"></i> <span data-i18n="add_shaders">Add Shaders</span>
+                            </button>
+                        </div>
+                        <div id="installedShaderPacksList" class="flex-1 bg-[#0c0c0e] border border-zinc-800/50 rounded-lg p-2 font-sans text-sm text-zinc-400 overflow-y-auto shadow-inner space-y-2"></div>
+                    </div>
+
+                    <!-- Datapacks Tab -->
+                    <div id="datapacksTab" class="instance-tab-content flex-1 min-h-0 flex flex-col hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white" data-i18n="installed_datapacks">Installed Datapacks</h3>
+                            <button onclick="openItemBrowser('datapack')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-plus text-xs"></i> <span data-i18n="add_datapacks">Add Datapacks</span>
+                            </button>
+                        </div>
+                        <div id="installedDatapacksList" class="flex-1 bg-[#0c0c0e] border border-zinc-800/50 rounded-lg p-2 font-sans text-sm text-zinc-400 overflow-y-auto shadow-inner space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals Overlay -->
+    <div id="modalOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-opacity duration-300 gap-5">
+        
+        <!-- Alert Modal -->
+        <div id="alertModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[400px] p-6 hidden modal-enter relative z-[60]">
+            <h2 class="text-xl font-bold text-white mb-2" data-i18n="info">Info</h2>
+            <p class="text-sm text-zinc-400 mb-6" id="alertMessage"></p>
+            <button onclick="closeAlert()" class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-900/20 transition-colors">OK</button>
+        </div>
+
+        <!-- Confirm Modal -->
+        <div id="confirmModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[400px] p-6 hidden modal-enter relative z-[60]">
+            <h2 class="text-xl font-bold text-white mb-2" data-i18n="confirmation">Confirmation</h2>
+            <p class="text-sm text-zinc-400 mb-6" id="confirmMessage"></p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirm(false)" class="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white text-sm font-medium transition-colors">Cancel</button>
+                <button onclick="closeConfirm(true)" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-900/20 transition-colors">Confirm</button>
+            </div>
+        </div>
+
+        <!-- Prompt Modal -->
+        <div id="promptModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[400px] p-6 hidden modal-enter relative z-[60]">
+            <h2 class="text-xl font-bold text-white mb-2" id="promptTitle">Input</h2>
+            <p class="text-sm text-zinc-400 mb-4" id="promptMessage"></p>
+            <input type="text" id="promptInput" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700 mb-6" onkeyup="if(event.key === 'Enter') closePrompt(true)">
+            <div class="flex gap-3">
+                <button onclick="closePrompt(false)" class="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white text-sm font-medium transition-colors">Cancel</button>
+                <button onclick="closePrompt(true)" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-900/20 transition-colors">OK</button>
+            </div>
+        </div>
+
+        <!-- Create Instance Modal -->
+        <div id="createModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[500px] p-6 hidden modal-enter relative">
+            <button onclick="closeAllModals()" class="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            
+            <h2 class="text-xl font-bold text-white mb-4" data-i18n="new_instance">New Instance</h2>
+            
+            <!-- Tabs -->
+            <div class="flex gap-4 border-b border-zinc-800 mb-6">
+                <button onclick="switchCreateTab('custom')" id="tab-create-custom" class="pb-2 text-sm font-medium text-emerald-500 border-b-2 border-emerald-500 transition-colors" data-i18n="create_custom">Custom</button>
+                <button onclick="switchCreateTab('modpack')" id="tab-create-modpack" class="pb-2 text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors" data-i18n="modpacks">Modpacks</button>
+            </div>
+
+            <!-- Custom Form -->
+            <div id="create-custom">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="instance_name">Name</label>
+                        <input type="text" id="newInstName" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700" placeholder="My Survival World">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="mc_version">Version</label>
+                            <div class="relative dropdown-container" id="versionDropdownContainer">
+                                <input type="hidden" id="newInstVersion">
+                                <button onclick="toggleDropdown('versionDropdownMenu'); setTimeout(()=>document.getElementById('versionSearch').focus(), 50)" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white text-left flex items-center justify-between focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all group">
+                                    <span id="versionBtnText" class="text-zinc-500">Select Version</span>
+                                    <i class="fa-solid fa-chevron-down text-xs text-zinc-600 group-hover:text-zinc-400"></i>
+                                </button>
+                                
+                                <div id="versionDropdownMenu" class="absolute left-0 top-full mt-1 w-full bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden hidden z-50 ring-1 ring-white/5">
+                                    <div class="p-2 border-b border-zinc-800 sticky top-0 bg-[#18181b] z-10">
+                                        <div class="relative">
+                                            <i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500"></i>
+                                            <input type="text" id="versionSearch" oninput="filterVersions(this.value)" placeholder="Search..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-8 pr-2 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500/50 placeholder-zinc-600">
+                                        </div>
+                                    </div>
+                                    <div id="versionList" class="max-h-48 overflow-y-auto p-1">
+                                        <!-- Options -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="loader">Loader</label>
+                            <div class="relative dropdown-container" id="loaderDropdownContainer">
+                                <input type="hidden" id="newInstLoader" value="Vanilla">
+                                <button onclick="toggleDropdown('loaderDropdownMenu')" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white text-left flex items-center justify-between focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all group">
+                                    <span id="loaderBtnText">Vanilla</span>
+                                    <i class="fa-solid fa-chevron-down text-xs text-zinc-600 group-hover:text-zinc-400"></i>
+                                </button>
+                                
+                                <div id="loaderDropdownMenu" class="absolute left-0 top-full mt-1 w-full bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden hidden z-50 ring-1 ring-white/5">
+                                    <div class="p-1" id="loaderList">
+                                        <!-- Options -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex gap-3">
+                        <button onclick="closeAllModals()" class="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white text-sm font-medium transition-colors">Cancel</button>
+                        <button onclick="createInstance()" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-900/20 transition-colors" data-i18n="create">Create</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modpack Form -->
+            <div id="create-modpack" class="hidden flex flex-col h-[400px]">
+                <div class="flex gap-2 mb-4">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500"></i>
+                        <input type="text" id="modpackSearchInput" oninput="debounce(() => searchModpacks(), 500)()" placeholder="Search modpacks..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-8 pr-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none" data-i18n-placeholder="search_modpacks">
+                    </div>
+                    <div class="relative dropdown-container">
+                        <input type="hidden" id="modpackVersionFilter" value="">
+                        <button onclick="toggleDropdown('modpackVersionDropdownMenu')" class="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white flex items-center gap-2 focus:border-emerald-500/50 outline-none min-w-[140px] justify-between group h-full">
+                            <span id="modpackVersionBtnText" data-i18n="all_versions">All Versions</span>
+                            <i class="fa-solid fa-chevron-down text-xs text-zinc-600 group-hover:text-zinc-400"></i>
+                        </button>
+                        <div id="modpackVersionDropdownMenu" class="absolute right-0 top-full mt-1 w-48 bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden hidden z-50 ring-1 ring-white/5">
+                            <div id="modpackFilterList" class="max-h-60 overflow-y-auto p-1"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="showImportForm()" class="w-full mb-3 py-2.5 border border-dashed border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-import"></i> <span data-i18n="import_mrpack_file">Import .mrpack file</span>
+                </button>
+
+                <div id="modpackList" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                    <!-- Results -->
+                </div>
+            </div>
+
+            <!-- Import Form -->
+            <div id="create-import" class="hidden">
+                <div class="flex items-center gap-3 mb-4">
+                    <button onclick="hideImportForm()" class="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3 class="text-lg font-bold text-white" data-i18n="import_mrpack">Import .mrpack</h3>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="instance_name">Name</label>
+                        <input type="text" id="importInstName" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700" placeholder="My Modpack">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="select_file">Select File</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="importFilePath" readonly class="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-500 focus:outline-none cursor-not-allowed" placeholder="No file selected">
+                            <button onclick="selectMrpackFile()" class="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg border border-zinc-700/50 transition-colors">
+                                <i class="fa-regular fa-folder-open"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex gap-3">
+                        <button onclick="closeAllModals()" class="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white text-sm font-medium transition-colors">Cancel</button>
+                        <button onclick="importMrpack()" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-900/20 transition-colors" data-i18n="import">Import</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modpack Version Selection Modal -->
+        <div id="modpackVersionModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[450px] p-6 hidden modal-enter relative">
+            <button onclick="closeAllModals()" class="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h2 class="text-xl font-bold text-white mb-4" data-i18n="select_version">Select Version</h2>
+            <div id="modpackVersionList" class="max-h-[400px] overflow-y-auto space-y-2 pr-1 mb-4">
+                <!-- Versions injected here -->
+            </div>
+            <button onclick="closeAllModals()" class="w-full py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white text-sm font-medium transition-colors">Cancel</button>
+        </div>
+
+        <!-- Delete Mod Confirmation Modal -->
+        <div id="deleteModModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[400px] p-6 hidden modal-enter relative">
+            <button onclick="closeAllModals()" class="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h2 class="text-xl font-bold text-white mb-2" data-i18n="delete_title">Delete Mod</h2>
+            <p class="text-sm text-zinc-400 mb-6" id="deleteModMessage">Are you sure you want to delete this mod?</p>
+            
+            <div class="flex gap-3">
+                <button onclick="closeAllModals()" class="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white text-sm font-medium transition-colors">Cancel</button>
+                <button onclick="confirmDeleteMod()" class="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium shadow-lg shadow-red-900/20 transition-colors" data-i18n="delete_title">Delete</button>
+            </div>
+        </div>
+
+        <!-- Account Modal -->
+        <div id="accountModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[400px] p-6 hidden modal-enter relative">
+            <button onclick="closeAllModals()" class="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h2 class="text-xl font-bold text-white mb-6" data-i18n="account_manager">Add Account</h2>
+            
+            <!-- Tabs -->
+            <div class="flex gap-4 border-b border-zinc-800 mb-6">
+                <button onclick="switchAuthTab('offline')" id="tab-offline" class="pb-2 text-sm font-medium text-emerald-500 border-b-2 border-emerald-500 transition-colors">Offline</button>
+                <button onclick="switchAuthTab('elyby')" id="tab-elyby" class="pb-2 text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors">Ely.by</button>
+                <button onclick="switchAuthTab('microsoft')" id="tab-microsoft" class="pb-2 text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors">Microsoft</button>
+            </div>
+
+            <!-- Offline Form -->
+            <div id="auth-offline">
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="username">Username</label>
+                <input type="text" id="localUsername" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700" placeholder="Steve">
+                <button onclick="addLocalAccount()" class="w-full mt-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-900/20 transition-colors" data-i18n="add">Add Offline Account</button>
+            </div>
+
+            <!-- Ely.by Form -->
+            <div id="auth-elyby" class="hidden">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="email_user">Email / Username</label>
+                        <input type="text" id="elyUsername" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="password">Password</label>
+                        <input type="password" id="elyPassword" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700">
+                    </div>
+                </div>
+                <button onclick="addElyByAccount()" class="w-full mt-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium shadow-lg shadow-blue-900/20 transition-colors" data-i18n="login">Log In with Ely.by</button>
+            </div>
+
+            <!-- Microsoft Form -->
+            <div id="auth-microsoft" class="hidden">
+                <p class="text-sm text-zinc-400 text-center mb-6" data-i18n="ms_login_prompt">Please login to your Microsoft account in the opened window.</p>
+                <button onclick="loginMicrosoft()" class="w-full py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium transition-colors flex items-center justify-center gap-3 border border-zinc-700">
+                    <i class="fa-brands fa-microsoft"></i>
+                    <span data-i18n="login_ms">Login with Microsoft</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[400px] p-6 hidden modal-enter relative">
+            <button onclick="closeAllModals()" class="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h2 class="text-xl font-bold text-white mb-4" data-i18n="settings">Settings</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="language">Language</label>
+                    <div class="relative dropdown-container" id="languageDropdownContainer">
+                        <button onclick="toggleDropdown('languageDropdownMenu')" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white text-left flex items-center justify-between focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all group">
+                            <div id="currentLanguageDisplay" class="flex items-center gap-2">
+                                <!-- Populated by JS -->
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-xs text-zinc-600 group-hover:text-zinc-400"></i>
+                        </button>
+                        <div id="languageDropdownMenu" class="absolute left-0 top-full mt-1 w-full bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden hidden z-50 ring-1 ring-white/5">
+                            <div id="languageList" class="max-h-60 overflow-y-auto p-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="java_path">Java Path (javaw.exe)</label>
+                    <input type="text" id="settingsJavaPath" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5" data-i18n="ram">RAM Allocation (MB)</label>
+                    <input type="number" id="settingsRam" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-700">
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end gap-3">
+                <button onclick="closeAllModals()" class="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white text-sm font-medium transition-colors">Cancel</button>
+                <button onclick="saveSettings()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium shadow-lg shadow-emerald-900/20 transition-colors" data-i18n="apply">Save Settings</button>
+            </div>
+        </div>
+
+        <!-- Add Mods Modal -->
+        <div id="modsModal" class="bg-[#18181b] border border-zinc-800 rounded-xl shadow-2xl w-[700px] h-[80vh] max-h-[600px] p-0 hidden modal-enter relative flex flex-col">
+            <div class="p-6 shrink-0">
+                <button onclick="closeAllModals()" class="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <h2 id="itemBrowserTitle" class="text-xl font-bold text-white mb-1" data-i18n="add_mods_title">Add Mods from Modrinth</h2>
+                <p class="text-sm text-zinc-500 mb-4" data-i18n="add_mods_subtitle">Search and install mods directly into your instance.</p>
+                
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-sm text-zinc-500"></i>
+                    <input type="text" id="modSearchInput" oninput="debounce(() => searchItems(false), 300)()" placeholder="Search for mods (e.g., Sodium, Iris...)" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-10 pr-10 py-3 text-sm text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all placeholder-zinc-600" data-i18n-placeholder="search_mods_placeholder">
+                    <div id="modSearchSpinner" class="absolute right-4 top-1/2 -translate-y-1/2 hidden">
+                        <i class="fa-solid fa-spinner fa-spin text-zinc-500"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="modSearchResults" class="flex-1 overflow-y-auto px-6 pb-6 space-y-3">
+                <div class="text-center text-zinc-600 pt-16">
+                    <i class="fa-solid fa-box-open text-5xl opacity-50"></i>
+                    <p class="mt-4" data-i18n="search_mods_empty">Search for mods to see results.</p>
+                </div>
+                <!-- Search results will be injected here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script src="i18next.js"></script>
+    <script src="main.js"></script>
+
+    <!-- Language -->
+    <script src="lang/most_used.js"></script>
+    <script src="lang/slavic.js"></script>
+    <script src="lang/romance.js"></script>
+    <script src="lang/germanic.js"></script>
+    <script src="lang/uralic.js"></script>
+    <script src="lang/baltic.js"></script>
+    <script src="lang/other.js"></script>
+</body>
+</html>
