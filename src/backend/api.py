@@ -21,7 +21,6 @@ class LauncherApi:
         self.is_64bit = platform.machine().endswith('64')
         self.is_windows = self.system == "Windows"
 
-        # Если запущен EXE (frozen), используем путь к нему. Иначе - путь к исходникам.
         if getattr(sys, 'frozen', False):
             self.script_dir = os.path.dirname(sys.executable)
         else:
@@ -520,4 +519,5 @@ class LauncherApi:
             
             return {"success": True, "type": project_type}
         except Exception as e:
+
             return {"success": False, "error": str(e)}
