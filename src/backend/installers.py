@@ -12,10 +12,8 @@ from .utils import get_os_name, download_file
 
 def get_data_root():
     if getattr(sys, 'frozen', False):
-        # Если запущен exe, корень - папка с exe
         return os.path.join(os.path.dirname(sys.executable), "data")
-    
-    # Иначе (в разработке) определяем путь относительно этого файла
+
     path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     return os.path.join(path, "data")
 
@@ -222,4 +220,5 @@ def download_and_run_installer_cached(url, installer_path, mc_dir, expected_id, 
         with open(os.path.join(mc_dir, "launcher_profiles.json"), "w") as f: json.dump({"profiles": {}}, f)
     java_executable = java_path if java_path else "java"
     subprocess.run([java_executable, "-jar", installer_path, "--installClient", mc_dir], check=True)
+
     return expected_id
